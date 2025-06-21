@@ -1,0 +1,366 @@
+
+
+## **Prompt: Building 'bypassx' - A Concurrency-Focused 403 Bypass Tool in Go**
+
+I need to build a powerful 403 bypass tool named `bypassx` using **Go**. The core principles for `bypassx` should be **concurrency, speed, and accuracy**. It should incorporate a wide range of basic and advanced bypass techniques. Additionally, I require a simple **Flask web application** to serve as a testing lab for `bypassx`.
+
+### **Part 1: 'bypassx' Go Tool Specifications**
+
+**Tool Name:** `bypassx`
+
+**Language:** Go
+
+**Core Requirements:**
+
+  * **Concurrency:** Utilize Goroutines and `sync.WaitGroup` to handle multiple requests simultaneously for high speed. Implement effective rate limiting using channels to prevent overwhelming target servers or triggering WAFs.
+  * **Speed:** Minimize overhead, use efficient HTTP client configurations.
+  * **Accuracy:** Clearly identify successful bypasses (e.g., HTTP 200, 302, or other user-defined success codes).
+
+-----
+
+#### **1. Basic 403 Bypass Techniques (Implement all of these):**
+
+  * **HTTP Method Tampering:**
+      * Try common alternate HTTP methods for the target path: `HEAD`, `OPTIONS`, `PUT`, `DELETE`, `PATCH`, `TRACE`.
+      * Implement `X-HTTP-Method-Override` header with various methods (e.g., `GET`, `POST`).
+  * **Path/URL Obfuscation Tricks:**
+      * **Trailing Characters:** Append common trailing characters: `/`, `/.`, `..;/`, `%20/` (space encoded), `%09/` (tab encoded).
+      * **Encoded Variants:** Test double and URL-encoded characters: `%2e` (.), `%2f` (/), `%5c` (), `%00` (null byte). Examples: `/admin%2f..%2f`, `/..%2fadmin`, `/admin%2e%2e/`.
+      * **Case Manipulation:** Vary the case of path segments (e.g., `/Admin`, `/AdMiN`).
+      * **Path Traversal:** Inject path traversal sequences: `/./admin`, `/../admin`, `/a/../admin`.
+      * **Using Double Slashes:** Test double slashes: `//admin`, `/%2f/admin`, `/admin//`.
+  * **Header Manipulation:**
+      * **Spoofing Originating IP:** Add and experiment with various IP spoofing headers, each with `127.0.0.1`: `X-Original-URL`, `X-Custom-IP-Authorization`, `X-Forwarded-For`, `X-Host`, `X-Remote-IP`, `X-Originating-IP`, `X-Forwarded-Host`.
+      * **Referer/Origin Manipulation:** Set `Referer` and `Origin` headers to `https://google.com`, `https://example.com/legitpath`, or a blank value.
+      * **User-Agent:** Rotate through a list of common user agents, including mobile, desktop, and crawler UAs.
+  * **Authentication/Token Abuse:**
+      * **Cookie Handling:** Test requests with:
+          * No cookies.
+          * Modified/invalid `JWT` or `session` tokens (if provided by user).
+          * `Authorization: Basic` header with dummy credentials (e.g., `admin:password`, `test:test`).
+          * Remove or modify `Bearer` tokens (if present).
+  * **Content-Type & Body-Based Tricks:**
+      * Change the `Content-Type` header to: `application/xml`, `text/plain`, `multipart/form-data`, `application/x-www-form-urlencoded`.
+      * Send unexpected JSON body content (e.g., `{"_method": "GET"}`).
+  * **Host Header Attacks:**
+      * Manipulate the `Host` header to internal values: `localhost`, `127.0.0.1`, `internal.service`, custom allowed subdomains (if user provides a list).
+  * **CDN, WAF, and Proxy Bypass:**
+      * Attempt direct origin IP access (user must provide origin IP if known).
+      * Manipulate `X-Forwarded-*` headers beyond just IP spoofing (e.g., `X-Forwarded-Proto: https`, `X-Forwarded-Host: legit.domain`).
+      * **`Forwarded` Header:** Include `Forwarded: for=127.0.0.1;host=localhost`.
+  * **HTTP Version or Protocol Tricks:**
+      * Downgrade to `HTTP/1.0`.
+      * Send requests with invalid HTTP version headers (e.g., `HTTP/1.1\r\n\r\n`).
+      * Include `Upgrade: websocket` and `Connection: Upgrade` headers.
+  * **Redirect/Chained Request Bypass:**
+      * Test open redirects to the `/admin` endpoint (e.g., `/redirect?url=https://target.com/admin`).
+      * Attempt redirects from known whitelisted paths to the forbidden path.
+  * **Cache Poisoning or Misconfiguration Exploits (Simulated):**
+      * Include headers that might trigger cache poisoning or indicate internal caching: `X-Cache: HIT`, `Cache-Control: no-cache`.
+      * Abuse `X-Forwarded-Host` for cache key manipulation.
+
+-----
+
+#### **2. Advanced 403 Bypass Techniques (Implement all of these, accessible via an "advanced" flag):**
+
+  * **Null Path Segment Injections:**
+      * Inject empty segments: `/admin//././`.
+      * Use Unicode full-width slash: `/admin/%ef%bc%8f`.
+  * **Rare Unicode and Confusable Characters (Homoglyphs):**
+      * Test Unicode homoglyphs for common characters in the path (e.g., `/admіn` using Cyrillic "і").
+      * Inject zero-width spaces (`%E2%81%A0`).
+      * Use non-shortest UTF-8 forms for slashes (e.g., `/admin%F0%80%80%AF`).
+  * **Double URL Decode Bypass:**
+      * Test paths requiring double URL decoding: `/admin%252f` (becomes `/admin%2f` then `/admin/`), `/..%252fadmin`.
+  * **Proxy/Load Balancer Path Confusion:**
+      * Test variations of path manipulation to confuse proxies: `/%2e/api/admin`, `/api/.%2e/admin`, `/api/;/admin`.
+      * Consider specific bypasses for AWS ALB and Cloudflare Workers (simulated by the Flask app's routing logic).
+  * **Manipulating URL Fragments and Queries:**
+      * Append URL fragments: `/admin#@evil.com`, `/admin#anything`.
+      * Abuse query string merging: `/admin?.css`, `/admin?redirect=https://your.site`.
+  * **Verb Tunneling via GET Parameters:**
+      * Override HTTP verbs using query parameters: `/admin?_method=GET`, `/admin?_verb=HEAD`.
+  * **Chunked Transfer Encoding Smuggling (Simplified):**
+      * While full smuggling is complex, simulate by sending a truncated `Content-Length` or malformed `Transfer-Encoding` header alongside a valid request body. (This is challenging to implement perfectly in Go's standard client but try to simulate the concept).
+  * **Header Pollution via `X-Forwarded-*` Chain:**
+      * Chain multiple `X-Forwarded-For` headers: `evil.com, 127.0.0.1`.
+      * Chain `X-Forwarded-Host`: `attacker.com, internal.local`. Experiment with whether the first or last value is parsed.
+  * **File Extension Spoofing:**
+      * Append various file extensions: `/admin;.jpg`, `/admin.json`, `/admin.php/`.
+  * **Flash-Based/Old Client Behavior (Simulated):**
+      * Include headers that might be relevant to old clients (e.g., `X-Flash-Version`).
+      * Test for common legacy config files: `/crossdomain.xml`, `/clientaccesspolicy.xml`.
+  * **Hidden Headers and RFC Oddities:**
+      * Attempt HTTP `line folding` (though rare, worth trying if supported by Go's `net/http` client).
+      * Send duplicated headers (e.g., `X-Forwarded-For: 127.0.0.1`, `X-Forwarded-For: attacker.com`) to see which is parsed.
+  * **Server Misrouting via WebSockets:**
+      * Send `Upgrade: websocket` and `Connection: Upgrade` headers on a standard HTTP request to see if it triggers misrouting.
+  * **Desync Attacks (Conceptual):**
+      * Mention this as a known advanced technique; acknowledge it's outside the scope of `bypassx`'s direct implementation but important for users to be aware of.
+  * **Cloudflare/WAF Misconfig Detection and Routing Leaks (Conceptual):**
+      * No direct implementation in `bypassx`, but `bypassx`'s other techniques can help exploit results from such detections.
+  * **Try Uncommon Ports:**
+      * Allow scanning additional ports on the target host (e.g., `8080`, `8443`).
+
+-----
+
+#### **3. Command-Line Arguments & Features:**
+
+`bypassx` should be runnable from the command line with the following flags:
+
+  * `-u <target_url>`: Specifies a single target URL to test (e.g., `https://target.com/admin`).
+  * `-l <url_list_file>`: Specifies a file containing a list of target URLs, one per line.
+  * `-H <header_file>`: Specifies a file containing custom headers to be included in *all* requests (format: `Key: Value`, one per line).
+  * `-m <method>`: Specifies a single HTTP method to try (e.g., `GET`, `POST`, `OPTIONS`). If not specified, all basic methods (GET, POST, HEAD, OPTIONS, PUT, DELETE, PATCH, TRACE) will be tried by default with all techniques.
+  * `-o <output_file>`: Writes successful bypass results to the specified file.
+  * `-t <concurrency>`: Sets the number of concurrent goroutines/requests (default: 10).
+  * `-timeout <duration>`: Sets the request timeout in seconds (default: 10s).
+  * `-verbose`: Enables verbose output, showing every request sent and its response status.
+  * `-proxy <proxy_url>`: Routes all traffic through an HTTP/HTTPS proxy (e.g., `http://127.0.0.1:8080`).
+  * `-cookie <cookie_string>`: Adds a custom cookie string to all requests (e.g., `JSESSIONID=xyz`).
+  * `-data <post_data>`: Specifies HTTP POST data for `POST` and other methods that support a body.
+  * `-stdin`: Reads target URLs from standard input, one per line.
+  * `-all`: Enables all basic and advanced bypass techniques (this should be the default behavior if no specific mode flag is set).
+  * `-basic`: Enables only basic bypass techniques.
+  * `-advanced`: Enables only advanced bypass techniques.
+  * `-port <ports>`: Comma-separated list of additional ports to test on the target host (e.g., `8080,8443`).
+  * `-status <codes>`: Comma-separated list of HTTP status codes considered a "success" (default: `200,302,401`).
+  * `-wordlist <path_wordlist>`: Path to a custom wordlist file for fuzzing path segments (e.g., `common_admin_paths.txt`). Each line in the wordlist is treated as a path segment.
+  * `-user-agent-file <ua_file>`: Path to a file containing a list of user-agent strings, one per line, to cycle through.
+
+**Output Format:**
+
+  * For each successful bypass, print to console (and optionally to file):
+    `[BYPASS SUCCESS] URL: <bypassed_url> | Method: <method> | Technique: <technique_name> | Status: <status_code>`
+  * For each failed attempt (non-success status code), print to verbose mode (if enabled):
+    `[FAILED] URL: <attempted_url> | Method: <method> | Technique: <technique_name> | Status: <status_code>`
+  * Include a summary at the end: Total URLs processed, total bypasses found.
+
+-----
+
+#### **4. Go Libraries & Algorithms to Use:**
+
+  * **`net/http`:** For all HTTP client operations. Configure a custom `http.Client` with `http.Transport` for proxy support, timeouts, and `DisableKeepAlives`.
+  * **`sync` package (`sync.WaitGroup`, `sync.Mutex`):** For managing concurrent goroutines and ensuring safe access to shared resources (e.g., results list).
+  * **`bufio`:** For efficient reading of files (URL lists, headers, wordlists) and `os.Stdin`.
+  * **`flag`:** For parsing command-line arguments.
+  * **`log`:** For structured logging output.
+  * **`strings`, `net/url`, `path`:** For robust URL and path manipulation, encoding/decoding.
+  * **Goroutines & Channels:** Leverage goroutines for concurrent request execution. Use a buffered channel to act as a worker pool/rate limiter to control the number of concurrent requests.
+  * **Error Handling:** Implement robust `try/catch`-like error handling (Go's `error` return values) for network issues, file operations, etc.
+  * **Data Structures:** Use maps and slices to store and manage bypass techniques, header lists, etc.
+
+-----
+
+### **Part 2: Simple Flask Testing Lab**
+
+Create a `main.py` Flask application that simulates a protected `/admin` endpoint and allows various bypass techniques to succeed.
+
+```python
+# main.py
+from flask import Flask, request, jsonify, redirect, make_response
+import os
+import re
+
+app = Flask(__name__)
+
+# Basic 403 response
+@app.route('/admin', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE'])
+def admin_panel():
+    # Default 403 Forbidden
+    resp = make_response(jsonify(message="Access Denied: Forbidden"), 403)
+
+    # --- BASIC BYPASSES ---
+
+    # 1. HTTP Method Tampering (OPTIONS allowed)
+    if request.method == 'OPTIONS':
+        resp = make_response(jsonify(message="Options allowed for admin"), 200)
+        resp.headers['Allow'] = 'GET, POST, OPTIONS'
+        return resp
+    
+    # X-HTTP-Method-Override
+    if request.headers.get('X-HTTP-Method-Override') == 'GET':
+        if request.path == '/admin':
+             resp = make_response(jsonify(message="X-HTTP-Method-Override bypass success!"), 200)
+             return resp
+
+    # 2. Path/URL Obfuscation Tricks
+    # Trailing slash
+    if request.path == '/admin/':
+        resp = make_response(jsonify(message="Trailing slash bypass!"), 200)
+        return resp
+    # Trailing dot
+    if request.path == '/admin/.':
+        resp = make_response(jsonify(message="Trailing dot bypass!"), 200)
+        return resp
+    # Percent encoded space/tab
+    if request.path == '/admin%20/' or request.path == '/admin%09/':
+        resp = make_response(jsonify(message="Encoded space/tab bypass!"), 200)
+        return resp
+    # Path traversal (e.g., /a/../admin)
+    if re.match(r'^/\w+/\.\./admin/?$', request.path):
+        resp = make_response(jsonify(message="Path traversal bypass!"), 200)
+        return resp
+    # Double slashes
+    if '//admin' in request.path:
+        resp = make_response(jsonify(message="Double slash bypass!"), 200)
+        return resp
+    # Case manipulation (simple example)
+    if request.path.lower() == '/admin' and request.path != '/admin':
+        resp = make_response(jsonify(message="Case manipulation bypass!"), 200)
+        return resp
+    
+    # 3. Header Manipulation - Spoofing Originating IP
+    if request.headers.get('X-Forwarded-For') == '127.0.0.1' or \
+       request.headers.get('X-Originating-IP') == '127.0.0.1' or \
+       request.headers.get('X-Custom-IP-Authorization') == '127.0.0.1':
+        resp = make_response(jsonify(message="IP spoofing header bypass!"), 200)
+        return resp
+
+    # 4. Authentication/Token Abuse - No cookie, or specific invalid cookie
+    # This simulates a broken logic where no cookie grants access
+    if not request.cookies.get('session_token'):
+        resp = make_response(jsonify(message="No session cookie bypass!"), 200)
+        return resp
+    
+    # 5. Content-Type & Body-Based Tricks
+    # If Content-Type is XML or text/plain, bypass
+    if request.headers.get('Content-Type') in ['application/xml', 'text/plain']:
+        resp = make_response(jsonify(message="Content-Type bypass!"), 200)
+        return resp
+    # JSON body _method override
+    if request.is_json and request.json.get('_method') == 'GET' and request.path == '/admin':
+        resp = make_response(jsonify(message="JSON method override bypass!"), 200)
+        return resp
+    
+    # 6. Host Header Attacks
+    if request.headers.get('Host') in ['localhost', '127.0.0.1', 'internal.service']:
+        resp = make_response(jsonify(message="Host header bypass!"), 200)
+        return resp
+
+    # 7. HTTP Version Downgrade (simulated)
+    if request.headers.get('X-Simulate-HTTP1.0'): # bypassx should send HTTP/1.0
+        resp = make_response(jsonify(message="HTTP/1.0 Downgrade bypass!"), 200)
+        return resp
+
+    # --- ADVANCED BYPASSES ---
+
+    # 1. Null Path Segment Injections (simulated)
+    # /admin//././
+    if '//././' in request.path:
+        resp = make_response(jsonify(message="Null path segment bypass!"), 200)
+        return resp
+    # Unicode full-width slash (%ef%bc%8f) -> /admin／
+    if '／' in request.path: # Flask automatically decodes
+        resp = make_response(jsonify(message="Unicode full-width slash bypass!"), 200)
+        return resp
+
+    # 2. Rare Unicode and Confusable Characters (Homoglyphs)
+    # Cyrillic 'і'
+    if 'admіn' in request.path: # Flask decodes, direct check
+        resp = make_response(jsonify(message="Homoglyph bypass (Cyrillic 'i')!"), 200)
+        return resp
+    # Zero-width space (%E2%81%A0) - often stripped, but check if present in path after decoding
+    if '\u2060' in request.path:
+        resp = make_response(jsonify(message="Zero-width space bypass!"), 200)
+        return resp
+
+    # 3. Double URL Decode Bypass (simulated by Flask's behavior)
+    # Flask typically decodes once. To simulate double decode, we need the client to send %252f
+    # and then check for %2f. Since Flask decodes it once, if we send /admin%252f, request.path will be /admin%2f
+    if '%2f' in request.path: # After first decode by Flask
+        resp = make_response(jsonify(message="Double URL decode bypass!"), 200)
+        return resp
+
+    # 4. Proxy/Load Balancer Path Confusion (simulated)
+    # /api/;/admin - if proxy strips /api/;
+    if 'api/;' in request.path and request.path.endswith('/admin'):
+        resp = make_response(jsonify(message="Proxy path confusion bypass!"), 200)
+        return resp
+
+    # 5. Manipulating URL Fragments and Queries
+    # Query string merging: /admin?.css
+    if '.css' in request.query_string.decode():
+        resp = make_response(jsonify(message="Query string merge bypass!"), 200)
+        return resp
+    # Query string method override
+    if request.args.get('_method') == 'GET':
+        resp = make_response(jsonify(message="Query param method override bypass!"), 200)
+        return resp
+
+    # 6. File Extension Spoofing
+    if request.path.endswith('.json') or request.path.endswith(';.jpg'):
+        resp = make_response(jsonify(message="File extension spoofing bypass!"), 200)
+        return resp
+    
+    # 7. Hidden Headers and RFC Oddities (duplicated headers)
+    # Flask typically takes the first or last, depending on implementation
+    # Simulate by checking if a specific duplicated header is present
+    # This requires client to send 'X-Test: value1\r\nX-Test: value2'
+    if 'value2' in request.headers.getlist('X-Test'): # getlist returns all values
+        resp = make_response(jsonify(message="Duplicated header bypass!"), 200)
+        return resp
+
+    # 8. Uncommon Ports (handled by bypassx calling the correct port)
+    # This Flask app runs on a single port. The bypassx tool needs to try different ports.
+    # We can't simulate this within Flask, but the tool will test target.com:8080/admin
+    if request.host.endswith(':8080') or request.host.endswith(':8443'):
+         resp = make_response(jsonify(message="Uncommon port bypass (simulated)!"), 200)
+         return resp
+
+
+    return resp
+
+# Example of a redirect endpoint for redirect bypass
+@app.route('/redirect')
+def redirect_endpoint():
+    url = request.args.get('url')
+    if url:
+        return redirect(url, code=302)
+    return jsonify(message="No URL provided for redirect"), 400
+
+# Endpoint to test /crossdomain.xml or /clientaccesspolicy.xml
+@app.route('/crossdomain.xml')
+def crossdomain():
+    return """<?xml version="1.0"?>
+<cross-domain-policy>
+  <allow-access-from domain="*" />
+</cross-domain-policy>""", 200, {'Content-Type': 'application/xml'}
+
+@app.route('/clientaccesspolicy.xml')
+def clientaccesspolicy():
+    return """<?xml version="1.0"?>
+<access-policy>
+  <cross-domain-access>
+    <policy>
+      <allow-from http-methods="*" http-request-headers="*">
+        <domain uri="*"/>
+      </allow-from>
+      <grant-to>
+        <resource path="/" include-subpaths="true"/>
+      </grant-to>
+    </policy>
+  </cross-domain-access>
+</access-policy>""", 200, {'Content-Type': 'application/xml'}
+
+# Home page
+@app.route('/')
+def home():
+    return jsonify(message="Welcome to the Bypassx Testing Lab! Try /admin"), 200
+
+if __name__ == '__main__':
+    # You can run this Flask app on a specific port for testing:
+    # Example: python main.py
+    # or FLASK_APP=main.py flask run --host=0.0.0.0 --port=5000
+    # For testing uncommon ports:
+    # FLASK_APP=main.py flask run --host=0.0.0.0 --port=8080
+    app.run(host='0.0.0.0', port=5000, debug=True)
+```
+
+**Instructions for Flask Lab:**
+
+1.  Save the code above as `main.py`.
+2.  Install Flask: `pip install Flask`.
+3.  Run the Flask app: `FLASK_APP=main.py flask run --host=0.0.0.0 --port=5000`.
+4.  To test the "uncommon port" scenario, you'll need to run another instance of the Flask app on a different port (e.g., 8080): `FLASK_APP=main.py flask run --host=0.0.0.0 --port=8080`. Your Go tool should then target both `http://127.0.0.1:5000/admin` and `http://127.0.0.1:8080/admin`.
+
