@@ -67,6 +67,24 @@ def index():
         <div class="endpoint">
             <strong>/debug</strong> - Debug endpoint (vulnerable to method tampering)
         </div>
+        <div class="endpoint">
+            <strong>/waf</strong> - Modern WAF endpoint (Cloudflare-style protection)
+        </div>
+        <div class="endpoint">
+            <strong>/cdn</strong> - CDN bypass endpoint (Origin IP & cache techniques)
+        </div>
+        <div class="endpoint">
+            <strong>/api/v2/admin</strong> - API v2 with JWT & GraphQL vulnerabilities
+        </div>
+        <div class="endpoint">
+            <strong>/microservice</strong> - Container & service mesh bypasses
+        </div>
+        <div class="endpoint">
+            <strong>/ml-protected</strong> - ML/AI evasion techniques
+        </div>
+        <div class="endpoint">
+            <strong>/advanced</strong> - Unicode & encoding bypass testing
+        </div>
         
         <h2>Recent Bypass Attempts: <span id="total">{{ total_attempts }}</span></h2>
         <div id="attempts">
@@ -299,8 +317,157 @@ def debug_endpoint():
     return default_response
 
 # ================================
-# ADVANCED BYPASS ENDPOINTS
+# MODERN WAF/SECURITY BYPASS ENDPOINTS
 # ================================
+@app.route('/waf', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'])
+def modern_waf_endpoint():
+    """Modern WAF endpoint with advanced blocking and evasion techniques"""
+    
+    default_response = make_response(jsonify(message="WAF Blocked - Access Denied", waf_id="CF-001"), 403)
+    
+    # Cloudflare-style blocking with rate limiting simulation
+    user_agent = request.headers.get('User-Agent', '')
+    if 'curl' in user_agent.lower() or 'wget' in user_agent.lower():
+        if not request.headers.get('CF-Connecting-IP'):
+            log_attempt('/waf', 'WAF_BLOCK_AUTOMATED_TOOLS', False, 403)
+            return make_response(jsonify(message="Automated tool detected", waf_rule="AT-001"), 403)
+    
+    # CF-Connecting-IP bypass
+    if request.headers.get('CF-Connecting-IP') == '127.0.0.1':
+        log_attempt('/waf', 'CF_CONNECTING_IP_BYPASS', True, 200)
+        return make_response(jsonify(message="Cloudflare IP bypass success!"), 200)
+    
+    # Cache deception with X-Forwarded-Host
+    if request.headers.get('X-Forwarded-Host') == 'cdn.example.com':
+        log_attempt('/waf', 'CACHE_DECEPTION_XFH', True, 200)
+        return make_response(jsonify(message="Cache deception bypass success!"), 200)
+    
+    # HTTP/2 pseudo-header bypass simulation
+    if request.headers.get(':authority') == 'internal.service':
+        log_attempt('/waf', 'HTTP2_AUTHORITY_BYPASS', True, 200)
+        return make_response(jsonify(message="HTTP/2 authority bypass success!"), 200)
+    
+    # Request smuggling simulation via Transfer-Encoding
+    if 'chunked' in request.headers.get('Transfer-Encoding', '').lower():
+        if request.headers.get('Content-Length') == '0':
+            log_attempt('/waf', 'REQUEST_SMUGGLING_TE_CL', True, 200)
+            return make_response(jsonify(message="Request smuggling bypass success!"), 200)
+    
+    log_attempt('/waf', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+@app.route('/cdn', methods=['GET', 'POST', 'HEAD', 'OPTIONS'])
+def cdn_bypass_endpoint():
+    """CDN-specific bypass techniques"""
+    
+    default_response = make_response(jsonify(message="CDN Protected - Access Denied"), 403)
+    
+    # Origin IP bypass simulation
+    if request.headers.get('X-Originating-IP') == '1.2.3.4':
+        log_attempt('/cdn', 'ORIGIN_IP_BYPASS', True, 200)
+        return make_response(jsonify(message="Origin IP bypass success!"), 200)
+    
+    # Cache key poisoning via X-Forwarded-Scheme
+    if request.headers.get('X-Forwarded-Scheme') == 'internal':
+        log_attempt('/cdn', 'CACHE_KEY_POISONING', True, 200)
+        return make_response(jsonify(message="Cache key poisoning bypass success!"), 200)
+    
+    # Edge case: X-Edge-Location header
+    if request.headers.get('X-Edge-Location'):
+        log_attempt('/cdn', 'EDGE_LOCATION_BYPASS', True, 200)
+        return make_response(jsonify(message="Edge location bypass success!"), 200)
+    
+    log_attempt('/cdn', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+@app.route('/api/v2/admin', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])
+def api_v2_endpoint():
+    """API v2 with modern authentication bypasses"""
+    
+    default_response = make_response(jsonify(message="API v2 Access Denied", error_code="AUTH_002"), 401)
+    
+    # JWT bypass with "none" algorithm
+    auth_header = request.headers.get('Authorization', '')
+    if 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJub25lIn0' in auth_header:
+        log_attempt('/api/v2/admin', 'JWT_NONE_ALGORITHM', True, 200)
+        return make_response(jsonify(message="JWT none algorithm bypass success!"), 200)
+    
+    # GraphQL introspection bypass
+    if request.json and request.json.get('query', '').startswith('query IntrospectionQuery'):
+        log_attempt('/api/v2/admin', 'GRAPHQL_INTROSPECTION', True, 200)
+        return make_response(jsonify(message="GraphQL introspection bypass success!"), 200)
+    
+    # API versioning bypass via Accept header
+    if 'application/vnd.api.v1+json' in request.headers.get('Accept', ''):
+        log_attempt('/api/v2/admin', 'API_VERSION_DOWNGRADE', True, 200)
+        return make_response(jsonify(message="API version downgrade bypass success!"), 200)
+    
+    # CORS preflight bypass
+    if request.method == 'OPTIONS' and request.headers.get('Access-Control-Request-Method'):
+        log_attempt('/api/v2/admin', 'CORS_PREFLIGHT_BYPASS', True, 200)
+        resp = make_response(jsonify(message="CORS preflight bypass success!"), 200)
+        resp.headers['Access-Control-Allow-Origin'] = '*'
+        resp.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE'
+        return resp
+    
+    log_attempt('/api/v2/admin', 'DEFAULT_ACCESS', False, 401)
+    return default_response
+
+@app.route('/microservice', methods=['GET', 'POST'])
+def microservice_endpoint():
+    """Microservice with container and service mesh bypasses"""
+    
+    default_response = make_response(jsonify(message="Microservice Access Denied"), 403)
+    
+    # Istio service mesh bypass
+    if request.headers.get('X-Envoy-Original-Path'):
+        log_attempt('/microservice', 'ISTIO_ENVOY_BYPASS', True, 200)
+        return make_response(jsonify(message="Istio/Envoy bypass success!"), 200)
+    
+    # Kubernetes internal service bypass
+    if request.headers.get('X-Kubernetes-Service-Account'):
+        log_attempt('/microservice', 'K8S_SERVICE_ACCOUNT', True, 200)
+        return make_response(jsonify(message="Kubernetes service account bypass success!"), 200)
+    
+    # Docker container escape simulation
+    container_id = request.headers.get('X-Container-Id', '')
+    if container_id and 'privileged' in container_id:
+        log_attempt('/microservice', 'CONTAINER_ESCAPE', True, 200)
+        return make_response(jsonify(message="Container escape bypass success!"), 200)
+    
+    log_attempt('/microservice', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+@app.route('/ml-protected', methods=['GET', 'POST'])
+def ml_protected_endpoint():
+    """ML/AI-based protection system with evasion techniques"""
+    
+    default_response = make_response(jsonify(message="ML Protection Active - Access Denied", confidence=0.95), 403)
+    
+    # Adversarial input to confuse ML model
+    user_agent = request.headers.get('User-Agent', '')
+    if 'Mozilla/5.0 (compatible; MSIE 6.0; Windows 98; Win 9x 4.90)' in user_agent:
+        # Old browser signature to evade modern ML detection
+        log_attempt('/ml-protected', 'ML_EVASION_OLD_BROWSER', True, 200)
+        return make_response(jsonify(message="ML evasion via old browser signature success!"), 200)
+    
+    # Timing attack simulation
+    if request.headers.get('X-Timing-Attack') == 'slow':
+        import time
+        time.sleep(0.1)  # Simulate slow processing
+        log_attempt('/ml-protected', 'TIMING_ATTACK_BYPASS', True, 200)
+        return make_response(jsonify(message="Timing attack bypass success!"), 200)
+    
+    # Feature poisoning via unusual header combination
+    if (request.headers.get('Accept-Language') == 'xx-XX' and 
+        request.headers.get('Accept-Encoding') == 'identity' and
+        request.headers.get('Connection') == 'close'):
+        log_attempt('/ml-protected', 'ML_FEATURE_POISONING', True, 200)
+        return make_response(jsonify(message="ML feature poisoning bypass success!"), 200)
+    
+    log_attempt('/ml-protected', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
 @app.route('/advanced', methods=['GET', 'POST'])
 def advanced_endpoint():
     """Endpoint for testing advanced bypass techniques"""
@@ -321,6 +488,11 @@ def advanced_endpoint():
     if '/%2e' in request.full_path:
         log_attempt('/advanced', 'PATH_CONFUSION_0', True, 200)
         return make_response(jsonify(message="Path confusion bypass success!"), 200)
+    
+    # CRLF injection
+    if '%0d%0a' in request.full_path.lower() or '\r\n' in request.full_path:
+        log_attempt('/advanced', 'CRLF_INJECTION', True, 200)
+        return make_response(jsonify(message="CRLF injection bypass success!"), 200)
     
     log_attempt('/advanced', 'DEFAULT_ACCESS', False, 403)
     return default_response

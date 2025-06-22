@@ -1,7 +1,8 @@
-modules = ["golang", "python-3.11"]
+modules = ["golang", "python-3.11", "golang-1.22"]
 
 [nix]
 channel = "stable-24_05"
+packages = ["go"]
 
 [workflows]
 runButton = "Project"
