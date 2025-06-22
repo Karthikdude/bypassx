@@ -11,7 +11,7 @@
 
 *High-performance, battle-tested HTTP 403 bypass testing suite with 150+ advanced techniques*
 
-[🎯 Features](#-key-features) • [⚡ Quick Start](#-quick-start) • [🛠️ Installation](#️-installation) • [📖 Documentation](#-documentation) • [🧪 Testing Lab](#-testing-laboratory)
+[🎯 Features](#-key-features) • [⚡ Quick Start](#-quick-start) • [🛠️ Installation](#️-installation) • [🔍 Technique Documentation](#-technique-documentation) • [📖 Documentation](#-documentation) • [🧪 Testing Lab](#-testing-laboratory)
 
 ---
 
@@ -57,6 +57,30 @@
 </td>
 </tr>
 </table>
+
+---
+
+## 🔍 Technique Documentation
+
+### Viewing Technique Details
+
+Get detailed information about any bypass technique, including usage examples and testing procedures:
+
+```bash
+# List all available techniques
+bypassx -details
+
+# View details for a specific technique
+bypassx -details TRAILING_TAB_ENCODED
+```
+
+Each technique documentation includes:
+- Overview and technical details
+- Step-by-step testing instructions
+- Example commands (curl, Burp Suite)
+- Security implications
+- Mitigation strategies
+- Related techniques
 
 ---
 
@@ -389,6 +413,7 @@ bypassx -u https://target.com/admin -geo
 | `-proxy` | HTTP proxy | `-proxy http://127.0.0.1:8080` |
 | `-o` | Output file | `-o results.json` |
 | `-wordlist` | Path wordlist | `-wordlist paths.txt` |
+| `-details` | Show documentation for a specific bypass technique | `-details TRAILING_TAB_ENCODED` |
 
 </div>
 
