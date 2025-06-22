@@ -64,7 +64,7 @@
 
 ```bash
 # 🚀 Get started in 30 seconds
-git clone https://github.com/yourusername/bypassx.git
+git clone https://github.com/Karthikdude/bypassx.git
 cd bypassx && go build -o bypassx . && sudo cp bypassx /usr/local/bin/
 
 # 🎯 Test a single endpoint
@@ -100,7 +100,7 @@ python lab.py
 
 ```bash
 # 📥 Clone and build
-git clone https://github.com/yourusername/bypassx.git
+git clone https://github.com/Karthikdude/bypassx.git
 cd bypassx
 
 # 🔨 Build the tool
@@ -130,7 +130,7 @@ cd /tmp && bypassx -h
 
 ```bash
 # 🎯 One-command installation
-go install github.com/yourusername/bypassx@latest
+go install github.com/Karthikdude/bypassx@latest
 
 # ✅ Verify (ensure $GOPATH/bin is in PATH)
 bypassx -h
@@ -482,7 +482,7 @@ fi
 
 ```bash
 # 📥 Clone the repository
-git clone https://github.com/yourusername/bypassx.git
+git clone https://github.com/Karthikdude/bypassx.git
 cd bypassx
 
 # 🔨 Build and test
@@ -633,7 +633,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 **🎯 Proven 82.8% success rate • 🔥 150+ techniques • ⚡ High-performance Go • 🛡️ Modern security coverage**
 
-[⭐ Star this project](https://github.com/yourusername/bypassx) • [🍴 Fork it](https://github.com/yourusername/bypassx/fork) • [📢 Share it](https://twitter.com/intent/tweet?text=Check%20out%20BypassX%20-%20The%20ultimate%20HTTP%20403%20bypass%20testing%20suite!&url=https://github.com/yourusername/bypassx)
+[⭐ Star this project](https://github.com/Karthikdude/bypassx) • [🍴 Fork it](https://github.com/Karthikdude/bypassx/fork) • [📢 Share it](https://twitter.com/intent/tweet?text=Check%20out%20BypassX%20-%20The%20ultimate%20HTTP%20403%20bypass%20testing%20suite!&url=https://github.com/Karthikdude/bypassx)
 
 ---
 
