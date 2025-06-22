@@ -498,6 +498,581 @@ def advanced_endpoint():
     return default_response
 
 # ================================
+# PROTOCOL & METHOD BYPASSES
+# ================================
+@app.route('/method-override', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'])
+def method_override():
+    """HTTP method override variations"""
+    default_response = make_response(jsonify(message="Method Override - Access Denied"), 403)
+    
+    # X-HTTP-Method header
+    if request.headers.get('X-HTTP-Method') == 'GET':
+        log_attempt('/method-override', 'X_HTTP_METHOD', True, 200)
+        return make_response(jsonify(message="X-HTTP-Method bypass success!"), 200)
+    
+    # X-Method-Override header
+    if request.headers.get('X-Method-Override') == 'GET':
+        log_attempt('/method-override', 'X_METHOD_OVERRIDE', True, 200)
+        return make_response(jsonify(message="X-Method-Override bypass success!"), 200)
+    
+    # _method parameter
+    if request.args.get('_method') == 'GET' or (request.form and request.form.get('_method') == 'GET'):
+        log_attempt('/method-override', 'METHOD_PARAMETER', True, 200)
+        return make_response(jsonify(message="Method parameter bypass success!"), 200)
+    
+    log_attempt('/method-override', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+@app.route('/http-version', methods=['GET', 'POST'])
+def http_version():
+    """HTTP version bypass attempts"""
+    default_response = make_response(jsonify(message="HTTP Version - Access Denied"), 403)
+    
+    # HTTP/1.0 downgrade
+    if request.environ.get('SERVER_PROTOCOL') == 'HTTP/1.0':
+        log_attempt('/http-version', 'HTTP_1_0_DOWNGRADE', True, 200)
+        return make_response(jsonify(message="HTTP/1.0 downgrade bypass success!"), 200)
+    
+    # HTTP/2 specific headers
+    if request.headers.get('HTTP2-Settings'):
+        log_attempt('/http-version', 'HTTP2_SETTINGS', True, 200)
+        return make_response(jsonify(message="HTTP/2 settings bypass success!"), 200)
+    
+    log_attempt('/http-version', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+@app.route('/connect-method', methods=['CONNECT', 'GET', 'POST'])
+def connect_method():
+    """HTTP CONNECT method bypass"""
+    default_response = make_response(jsonify(message="CONNECT Method - Access Denied"), 403)
+    
+    if request.method == 'CONNECT':
+        log_attempt('/connect-method', 'CONNECT_METHOD', True, 200)
+        return make_response(jsonify(message="CONNECT method bypass success!"), 200)
+    
+    # CONNECT via header
+    if request.headers.get('X-HTTP-Method') == 'CONNECT':
+        log_attempt('/connect-method', 'CONNECT_HEADER', True, 200)
+        return make_response(jsonify(message="CONNECT header bypass success!"), 200)
+    
+    log_attempt('/connect-method', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+# ================================
+# ADVANCED PATH MANIPULATION
+# ================================
+@app.route('/path-normalization', methods=['GET', 'POST'])
+def path_normalization():
+    """Path normalization bypasses"""
+    default_response = make_response(jsonify(message="Path Normalization - Access Denied"), 403)
+    
+    # Check for path traversal patterns
+    if '/../' in request.full_path or '/./' in request.full_path or '/.//' in request.full_path:
+        log_attempt('/path-normalization', 'PATH_TRAVERSAL', True, 200)
+        return make_response(jsonify(message="Path traversal bypass success!"), 200)
+    
+    # Encoded path traversal
+    if '%2e%2e' in request.full_path or '%2f' in request.full_path:
+        log_attempt('/path-normalization', 'ENCODED_TRAVERSAL', True, 200)
+        return make_response(jsonify(message="Encoded traversal bypass success!"), 200)
+    
+    log_attempt('/path-normalization', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+@app.route('/null-bytes', methods=['GET', 'POST'])
+def null_bytes():
+    """Null byte injection bypasses"""
+    default_response = make_response(jsonify(message="Null Bytes - Access Denied"), 403)
+    
+    if '%00' in request.full_path or '\x00' in request.full_path:
+        log_attempt('/null-bytes', 'NULL_BYTE_INJECTION', True, 200)
+        return make_response(jsonify(message="Null byte injection bypass success!"), 200)
+    
+    log_attempt('/null-bytes', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+@app.route('/path-params', methods=['GET', 'POST'])
+def path_params():
+    """Semicolon path parameters bypass"""
+    default_response = make_response(jsonify(message="Path Params - Access Denied"), 403)
+    
+    if ';jsessionid=' in request.full_path or ';' in request.path:
+        log_attempt('/path-params', 'SEMICOLON_PARAMS', True, 200)
+        return make_response(jsonify(message="Semicolon parameter bypass success!"), 200)
+    
+    log_attempt('/path-params', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+@app.route('/fragment-bypass', methods=['GET', 'POST'])
+def fragment_bypass():
+    """URL fragment manipulation bypasses"""
+    default_response = make_response(jsonify(message="Fragment - Access Denied"), 403)
+    
+    # Fragment simulation via query parameters
+    if request.args.get('fragment') or '#' in request.full_path:
+        log_attempt('/fragment-bypass', 'FRAGMENT_MANIPULATION', True, 200)
+        return make_response(jsonify(message="Fragment manipulation bypass success!"), 200)
+    
+    log_attempt('/fragment-bypass', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+# ================================
+# HEADER POLLUTION & SMUGGLING
+# ================================
+@app.route('/header-pollution', methods=['GET', 'POST'])
+def header_pollution():
+    """Multiple header pollution techniques"""
+    default_response = make_response(jsonify(message="Header Pollution - Access Denied"), 403)
+    
+    # Check for duplicate headers in raw request
+    xff_values = request.headers.getlist('X-Forwarded-For')
+    if len(xff_values) > 1:
+        log_attempt('/header-pollution', 'DUPLICATE_XFF', True, 200)
+        return make_response(jsonify(message="Duplicate header bypass success!"), 200)
+    
+    # Header with comma-separated values
+    if '127.0.0.1' in request.headers.get('X-Forwarded-For', '') and ',' in request.headers.get('X-Forwarded-For', ''):
+        log_attempt('/header-pollution', 'COMMA_SEPARATED_XFF', True, 200)
+        return make_response(jsonify(message="Comma-separated header bypass success!"), 200)
+    
+    log_attempt('/header-pollution', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+@app.route('/host-injection', methods=['GET', 'POST'])
+def host_injection():
+    """Host header injection variations"""
+    default_response = make_response(jsonify(message="Host Injection - Access Denied"), 403)
+    
+    host_header = request.headers.get('Host', '')
+    if 'internal' in host_header or 'localhost' in host_header or '127.0.0.1' in host_header:
+        log_attempt('/host-injection', 'HOST_INJECTION', True, 200)
+        return make_response(jsonify(message="Host injection bypass success!"), 200)
+    
+    # Host header with port
+    if ':80' in host_header or ':443' in host_header:
+        log_attempt('/host-injection', 'HOST_PORT_INJECTION', True, 200)
+        return make_response(jsonify(message="Host port injection bypass success!"), 200)
+    
+    log_attempt('/host-injection', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+@app.route('/xff-pollution', methods=['GET', 'POST'])
+def xff_pollution():
+    """X-Forwarded-For header pollution chains"""
+    default_response = make_response(jsonify(message="XFF Pollution - Access Denied"), 403)
+    
+    xff = request.headers.get('X-Forwarded-For', '')
+    if 'evil.com' in xff and '127.0.0.1' in xff:
+        log_attempt('/xff-pollution', 'XFF_CHAIN_POLLUTION', True, 200)
+        return make_response(jsonify(message="XFF chain pollution bypass success!"), 200)
+    
+    # Multiple XFF headers with different IPs
+    if len(xff.split(',')) > 2:
+        log_attempt('/xff-pollution', 'XFF_MULTIPLE_IPS', True, 200)
+        return make_response(jsonify(message="XFF multiple IPs bypass success!"), 200)
+    
+    log_attempt('/xff-pollution', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+@app.route('/request-smuggling', methods=['GET', 'POST'])
+def request_smuggling():
+    """Request smuggling simulation"""
+    default_response = make_response(jsonify(message="Request Smuggling - Access Denied"), 403)
+    
+    # CL.TE smuggling simulation
+    if (request.headers.get('Content-Length') and 
+        request.headers.get('Transfer-Encoding') and 
+        'chunked' in request.headers.get('Transfer-Encoding', '')):
+        log_attempt('/request-smuggling', 'CL_TE_SMUGGLING', True, 200)
+        return make_response(jsonify(message="CL.TE smuggling bypass success!"), 200)
+    
+    # TE.CL smuggling simulation
+    if request.headers.get('Transfer-Encoding') == 'chunked' and not request.headers.get('Content-Length'):
+        log_attempt('/request-smuggling', 'TE_CL_SMUGGLING', True, 200)
+        return make_response(jsonify(message="TE.CL smuggling bypass success!"), 200)
+    
+    log_attempt('/request-smuggling', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+# ================================
+# LOAD BALANCER & REVERSE PROXY BYPASSES
+# ================================
+@app.route('/lb-bypass', methods=['GET', 'POST'])
+def lb_bypass():
+    """Load balancer specific bypasses"""
+    default_response = make_response(jsonify(message="Load Balancer - Access Denied"), 403)
+    
+    # AWS ALB specific headers
+    if request.headers.get('X-Amzn-Trace-Id'):
+        log_attempt('/lb-bypass', 'AWS_ALB_BYPASS', True, 200)
+        return make_response(jsonify(message="AWS ALB bypass success!"), 200)
+    
+    # F5 BIG-IP headers
+    if request.headers.get('X-F5-Auth-Token'):
+        log_attempt('/lb-bypass', 'F5_BIGIP_BYPASS', True, 200)
+        return make_response(jsonify(message="F5 BIG-IP bypass success!"), 200)
+    
+    log_attempt('/lb-bypass', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+@app.route('/nginx-bypass', methods=['GET', 'POST'])
+def nginx_bypass():
+    """Nginx-specific bypass techniques"""
+    default_response = make_response(jsonify(message="Nginx - Access Denied"), 403)
+    
+    # Nginx underscores in headers
+    if request.headers.get('X_Forwarded_For'):
+        log_attempt('/nginx-bypass', 'NGINX_UNDERSCORE', True, 200)
+        return make_response(jsonify(message="Nginx underscore bypass success!"), 200)
+    
+    # Nginx off-by-one
+    if request.headers.get('X-Accel-Redirect'):
+        log_attempt('/nginx-bypass', 'NGINX_ACCEL_REDIRECT', True, 200)
+        return make_response(jsonify(message="Nginx accel redirect bypass success!"), 200)
+    
+    log_attempt('/nginx-bypass', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+@app.route('/apache-bypass', methods=['GET', 'POST'])
+def apache_bypass():
+    """Apache-specific bypass methods"""
+    default_response = make_response(jsonify(message="Apache - Access Denied"), 403)
+    
+    # Apache mod_rewrite bypass
+    if request.headers.get('X-Original-URL') or request.headers.get('X-Rewrite-URL'):
+        log_attempt('/apache-bypass', 'APACHE_MOD_REWRITE', True, 200)
+        return make_response(jsonify(message="Apache mod_rewrite bypass success!"), 200)
+    
+    # Apache range header bypass
+    if request.headers.get('Range'):
+        log_attempt('/apache-bypass', 'APACHE_RANGE', True, 200)
+        return make_response(jsonify(message="Apache range bypass success!"), 200)
+    
+    log_attempt('/apache-bypass', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+@app.route('/haproxy-bypass', methods=['GET', 'POST'])
+def haproxy_bypass():
+    """HAProxy configuration bypasses"""
+    default_response = make_response(jsonify(message="HAProxy - Access Denied"), 403)
+    
+    # HAProxy specific headers
+    if request.headers.get('X-Haproxy-Server-State'):
+        log_attempt('/haproxy-bypass', 'HAPROXY_STATE', True, 200)
+        return make_response(jsonify(message="HAProxy state bypass success!"), 200)
+    
+    # HAProxy connection header
+    if 'close' in request.headers.get('Connection', '') and request.headers.get('X-Forwarded-Proto'):
+        log_attempt('/haproxy-bypass', 'HAPROXY_CONNECTION', True, 200)
+        return make_response(jsonify(message="HAProxy connection bypass success!"), 200)
+    
+    log_attempt('/haproxy-bypass', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+# ================================
+# CONTENT-TYPE & ACCEPT HEADER BYPASSES
+# ================================
+@app.route('/content-type', methods=['GET', 'POST', 'PUT'])
+def content_type():
+    """Content-Type manipulation bypasses"""
+    default_response = make_response(jsonify(message="Content-Type - Access Denied"), 403)
+    
+    ct = request.headers.get('Content-Type', '')
+    if 'text/xml' in ct or 'application/xml' in ct:
+        log_attempt('/content-type', 'XML_CONTENT_TYPE', True, 200)
+        return make_response(jsonify(message="XML content-type bypass success!"), 200)
+    
+    if 'multipart/form-data' in ct:
+        log_attempt('/content-type', 'MULTIPART_BYPASS', True, 200)
+        return make_response(jsonify(message="Multipart bypass success!"), 200)
+    
+    log_attempt('/content-type', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+@app.route('/accept-bypass', methods=['GET', 'POST'])
+def accept_bypass():
+    """Accept header variation bypasses"""
+    default_response = make_response(jsonify(message="Accept - Access Denied"), 403)
+    
+    accept = request.headers.get('Accept', '')
+    if 'application/xml' in accept or 'text/xml' in accept:
+        log_attempt('/accept-bypass', 'ACCEPT_XML', True, 200)
+        return make_response(jsonify(message="Accept XML bypass success!"), 200)
+    
+    if '*/*' in accept and 'text/html' not in accept:
+        log_attempt('/accept-bypass', 'ACCEPT_WILDCARD', True, 200)
+        return make_response(jsonify(message="Accept wildcard bypass success!"), 200)
+    
+    log_attempt('/accept-bypass', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+@app.route('/charset-bypass', methods=['GET', 'POST'])
+def charset_bypass():
+    """Character encoding bypass attempts"""
+    default_response = make_response(jsonify(message="Charset - Access Denied"), 403)
+    
+    ct = request.headers.get('Content-Type', '')
+    if 'charset=utf-7' in ct or 'charset=iso-8859-1' in ct:
+        log_attempt('/charset-bypass', 'CHARSET_ENCODING', True, 200)
+        return make_response(jsonify(message="Charset encoding bypass success!"), 200)
+    
+    log_attempt('/charset-bypass', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+# ================================
+# AUTHENTICATION CONTEXT BYPASSES
+# ================================
+@app.route('/session-bypass', methods=['GET', 'POST'])
+def session_bypass():
+    """Session manipulation bypasses"""
+    default_response = make_response(jsonify(message="Session - Access Denied"), 403)
+    
+    # Check for session manipulation
+    if request.headers.get('X-Session-ID') == 'admin' or request.headers.get('X-User-ID') == '0':
+        log_attempt('/session-bypass', 'SESSION_MANIPULATION', True, 200)
+        return make_response(jsonify(message="Session manipulation bypass success!"), 200)
+    
+    log_attempt('/session-bypass', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+@app.route('/cookie-bypass', methods=['GET', 'POST'])
+def cookie_bypass():
+    """Cookie-based access control bypasses"""
+    default_response = make_response(jsonify(message="Cookie - Access Denied"), 403)
+    
+    cookies = request.headers.get('Cookie', '')
+    if 'admin=true' in cookies or 'role=administrator' in cookies:
+        log_attempt('/cookie-bypass', 'COOKIE_MANIPULATION', True, 200)
+        return make_response(jsonify(message="Cookie manipulation bypass success!"), 200)
+    
+    log_attempt('/cookie-bypass', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+@app.route('/token-bypass', methods=['GET', 'POST'])
+def token_bypass():
+    """Various token manipulation techniques"""
+    default_response = make_response(jsonify(message="Token - Access Denied"), 403)
+    
+    auth = request.headers.get('Authorization', '')
+    if 'Bearer admin' in auth or 'Token 12345' in auth:
+        log_attempt('/token-bypass', 'TOKEN_MANIPULATION', True, 200)
+        return make_response(jsonify(message="Token manipulation bypass success!"), 200)
+    
+    log_attempt('/token-bypass', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+# ================================
+# RATE LIMITING & THROTTLING BYPASSES
+# ================================
+@app.route('/rate-limit-bypass', methods=['GET', 'POST'])
+def rate_limit_bypass():
+    """Rate limiting evasion techniques"""
+    default_response = make_response(jsonify(message="Rate Limited - Access Denied"), 429)
+    
+    # Bypass via X-Forwarded-For rotation
+    if request.headers.get('X-Rate-Limit-Bypass') == 'true':
+        log_attempt('/rate-limit-bypass', 'RATE_LIMIT_HEADER', True, 200)
+        return make_response(jsonify(message="Rate limit header bypass success!"), 200)
+    
+    # Different user agent bypass
+    ua = request.headers.get('User-Agent', '')
+    if 'bot' in ua.lower() or 'crawler' in ua.lower():
+        log_attempt('/rate-limit-bypass', 'BOT_USER_AGENT', True, 200)
+        return make_response(jsonify(message="Bot user agent bypass success!"), 200)
+    
+    log_attempt('/rate-limit-bypass', 'DEFAULT_ACCESS', False, 429)
+    return default_response
+
+# ================================
+# GEOGRAPHIC & IP-BASED BYPASSES
+# ================================
+@app.route('/geo-bypass', methods=['GET', 'POST'])
+def geo_bypass():
+    """Geographic restriction bypasses"""
+    default_response = make_response(jsonify(message="Geographic Block - Access Denied"), 403)
+    
+    # Geo bypass via headers
+    if request.headers.get('CF-IPCountry') == 'US' or request.headers.get('X-Country-Code') == 'US':
+        log_attempt('/geo-bypass', 'GEO_HEADER_BYPASS', True, 200)
+        return make_response(jsonify(message="Geographic header bypass success!"), 200)
+    
+    log_attempt('/geo-bypass', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+@app.route('/ip-whitelist', methods=['GET', 'POST'])
+def ip_whitelist():
+    """IP whitelist bypass techniques"""
+    default_response = make_response(jsonify(message="IP Whitelist - Access Denied"), 403)
+    
+    # IP whitelist bypass
+    if request.headers.get('X-Client-IP') == '192.168.1.1' or request.headers.get('X-Real-IP') == '10.0.0.1':
+        log_attempt('/ip-whitelist', 'IP_WHITELIST_BYPASS', True, 200)
+        return make_response(jsonify(message="IP whitelist bypass success!"), 200)
+    
+    log_attempt('/ip-whitelist', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+# ================================
+# FILE EXTENSION & MIME TYPE BYPASSES
+# ================================
+@app.route('/extension-bypass', methods=['GET', 'POST'])
+def extension_bypass():
+    """File extension manipulation"""
+    default_response = make_response(jsonify(message="Extension - Access Denied"), 403)
+    
+    if request.path.endswith('.txt') or request.path.endswith('.log'):
+        log_attempt('/extension-bypass', 'FILE_EXTENSION', True, 200)
+        return make_response(jsonify(message="File extension bypass success!"), 200)
+    
+    log_attempt('/extension-bypass', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+@app.route('/mime-bypass', methods=['GET', 'POST'])
+def mime_bypass():
+    """MIME type spoofing bypasses"""
+    default_response = make_response(jsonify(message="MIME - Access Denied"), 403)
+    
+    if request.headers.get('Content-Type') == 'image/jpeg' and request.method == 'POST':
+        log_attempt('/mime-bypass', 'MIME_SPOOFING', True, 200)
+        return make_response(jsonify(message="MIME spoofing bypass success!"), 200)
+    
+    log_attempt('/mime-bypass', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+# ================================
+# CACHE & CDN SPECIFIC
+# ================================
+@app.route('/cache-bypass', methods=['GET', 'POST'])
+def cache_bypass():
+    """Cache-based access control bypasses"""
+    default_response = make_response(jsonify(message="Cache Protected - Access Denied"), 403)
+    
+    if request.headers.get('Cache-Control') == 'no-cache' or request.headers.get('Pragma') == 'no-cache':
+        log_attempt('/cache-bypass', 'CACHE_CONTROL_BYPASS', True, 200)
+        return make_response(jsonify(message="Cache control bypass success!"), 200)
+    
+    log_attempt('/cache-bypass', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+@app.route('/cdn-origin', methods=['GET', 'POST'])
+def cdn_origin():
+    """CDN origin server bypass techniques"""
+    default_response = make_response(jsonify(message="CDN Origin - Access Denied"), 403)
+    
+    if request.headers.get('X-Forwarded-Server') == 'origin.example.com':
+        log_attempt('/cdn-origin', 'CDN_ORIGIN_BYPASS', True, 200)
+        return make_response(jsonify(message="CDN origin bypass success!"), 200)
+    
+    log_attempt('/cdn-origin', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+# ================================
+# MODERN SECURITY BYPASSES
+# ================================
+@app.route('/csp-bypass', methods=['GET', 'POST'])
+def csp_bypass():
+    """Content Security Policy bypass attempts"""
+    default_response = make_response(jsonify(message="CSP Protected - Access Denied"), 403)
+    
+    if request.headers.get('X-Content-Type-Options') == 'nosniff':
+        log_attempt('/csp-bypass', 'CSP_HEADER_BYPASS', True, 200)
+        return make_response(jsonify(message="CSP header bypass success!"), 200)
+    
+    log_attempt('/csp-bypass', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+@app.route('/csrf-bypass', methods=['GET', 'POST'])
+def csrf_bypass():
+    """CSRF protection bypass techniques"""
+    default_response = make_response(jsonify(message="CSRF Protected - Access Denied"), 403)
+    
+    if request.headers.get('X-CSRF-Token') == 'bypass' or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        log_attempt('/csrf-bypass', 'CSRF_TOKEN_BYPASS', True, 200)
+        return make_response(jsonify(message="CSRF bypass success!"), 200)
+    
+    log_attempt('/csrf-bypass', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+# ================================
+# ENCODING & OBFUSCATION ADVANCED
+# ================================
+@app.route('/double-encode', methods=['GET', 'POST'])
+def double_encode():
+    """Double URL encoding bypasses"""
+    default_response = make_response(jsonify(message="Double Encode - Access Denied"), 403)
+    
+    if '%2525' in request.full_path:  # Double encoded %
+        log_attempt('/double-encode', 'DOUBLE_URL_ENCODING', True, 200)
+        return make_response(jsonify(message="Double URL encoding bypass success!"), 200)
+    
+    log_attempt('/double-encode', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+@app.route('/mixed-encode', methods=['GET', 'POST'])
+def mixed_encode():
+    """Mixed encoding techniques"""
+    default_response = make_response(jsonify(message="Mixed Encode - Access Denied"), 403)
+    
+    if '%41' in request.full_path or '%61' in request.full_path:  # Encoded A or a
+        log_attempt('/mixed-encode', 'MIXED_ENCODING', True, 200)
+        return make_response(jsonify(message="Mixed encoding bypass success!"), 200)
+    
+    log_attempt('/mixed-encode', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+@app.route('/unicode-bypass', methods=['GET', 'POST'])
+def unicode_bypass():
+    """Unicode normalization bypasses"""
+    default_response = make_response(jsonify(message="Unicode - Access Denied"), 403)
+    
+    # Check for Unicode variations
+    if 'ａ' in request.full_path or 'а' in request.full_path:  # Full-width or Cyrillic
+        log_attempt('/unicode-bypass', 'UNICODE_NORMALIZATION', True, 200)
+        return make_response(jsonify(message="Unicode normalization bypass success!"), 200)
+    
+    log_attempt('/unicode-bypass', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+# ================================
+# CONTAINER & ORCHESTRATION
+# ================================
+@app.route('/docker-bypass', methods=['GET', 'POST'])
+def docker_bypass():
+    """Docker-specific header bypasses"""
+    default_response = make_response(jsonify(message="Docker - Access Denied"), 403)
+    
+    if request.headers.get('X-Docker-Content-Trust') or request.headers.get('Docker-Content-Digest'):
+        log_attempt('/docker-bypass', 'DOCKER_HEADER_BYPASS', True, 200)
+        return make_response(jsonify(message="Docker header bypass success!"), 200)
+    
+    log_attempt('/docker-bypass', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+@app.route('/k8s-bypass', methods=['GET', 'POST'])
+def k8s_bypass():
+    """Kubernetes service mesh bypasses"""
+    default_response = make_response(jsonify(message="Kubernetes - Access Denied"), 403)
+    
+    if request.headers.get('X-Kubernetes-Service') or request.headers.get('X-K8s-Namespace'):
+        log_attempt('/k8s-bypass', 'K8S_SERVICE_BYPASS', True, 200)
+        return make_response(jsonify(message="Kubernetes service bypass success!"), 200)
+    
+    log_attempt('/k8s-bypass', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+@app.route('/istio-bypass', methods=['GET', 'POST'])
+def istio_bypass():
+    """Istio/Envoy specific bypasses"""
+    default_response = make_response(jsonify(message="Istio - Access Denied"), 403)
+    
+    if request.headers.get('X-Envoy-Peer-Metadata') or request.headers.get('X-Istio-Attributes'):
+        log_attempt('/istio-bypass', 'ISTIO_METADATA_BYPASS', True, 200)
+        return make_response(jsonify(message="Istio metadata bypass success!"), 200)
+    
+    log_attempt('/istio-bypass', 'DEFAULT_ACCESS', False, 403)
+    return default_response
+
+# ================================
 # CATCHALL FOR PATH VARIATIONS
 # ================================
 @app.route('/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE'])
@@ -539,4 +1114,5 @@ if __name__ == '__main__':
     print("  - /internal (header pollution)")
     print("  - /debug (advanced techniques)")
     print("  - /advanced (unicode and encoding)")
+    print("  - Plus 50+ specialized bypass endpoints")
     app.run(host='0.0.0.0', port=5000, debug=True)

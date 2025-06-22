@@ -1,0 +1,97 @@
+Running 58 specialized bypass tests...
+
+Testing: Method Override X-HTTP         ✓ SUCCESS (200)
+Testing: Method Override X-Method       ✓ SUCCESS (200)
+Testing: Method Override Param          ✓ SUCCESS (200)
+Testing: HTTP Version Settings          ✓ SUCCESS (200)
+Testing: Connect Header                 ✓ SUCCESS (200)
+Testing: Path Traversal                 ✓ SUCCESS (200)
+Testing: Path Dot Slash                 ✗ FAILED (404)
+Testing: Encoded Traversal              ✗ FAILED (404)
+Testing: Null Byte                      ✗ FAILED (404)
+Testing: Semicolon Params               ✗ FAILED (404)
+Testing: Fragment                       ✓ SUCCESS (200)
+Testing: XFF Pollution                  ✓ SUCCESS (200)
+Testing: XFF Multiple IPs               ✓ SUCCESS (200)
+Testing: Host Injection                 ✓ SUCCESS (200)
+Testing: Host Port                      ✓ SUCCESS (200)
+Testing: CL.TE Smuggling                ✓ SUCCESS (200)
+Testing: AWS ALB                        ✓ SUCCESS (200)
+Testing: F5 BIG-IP                      ✓ SUCCESS (200)
+Testing: Nginx Underscore               ✗ FAILED (403)
+Testing: Nginx Accel                    ✓ SUCCESS (200)
+Testing: Apache Rewrite                 ✓ SUCCESS (200)
+Testing: Apache Range                   ✓ SUCCESS (200)
+Testing: HAProxy State                  ✓ SUCCESS (200)
+Testing: XML Content-Type               ✓ SUCCESS (200)
+Testing: Multipart                      ✓ SUCCESS (200)
+Testing: Accept XML                     ✓ SUCCESS (200)
+Testing: Accept Wildcard                ✓ SUCCESS (200)
+Testing: Charset Encoding               ✓ SUCCESS (200)
+Testing: Session ID                     ✓ SUCCESS (200)
+Testing: User ID Zero                   ✓ SUCCESS (200)
+Testing: Cookie Admin                   ✓ SUCCESS (200)
+Testing: Cookie Role                    ✓ SUCCESS (200)
+Testing: Token Bearer                   ✓ SUCCESS (200)
+Testing: Token Basic                    ✓ SUCCESS (200)
+Testing: Rate Limit Header              ✓ SUCCESS (200)
+Testing: Bot User Agent                 ✓ SUCCESS (200)
+Testing: Cloudflare Country             ✓ SUCCESS (200)
+Testing: Country Code                   ✓ SUCCESS (200)
+Testing: Client IP                      ✓ SUCCESS (200)
+Testing: Real IP                        ✓ SUCCESS (200)
+Testing: File Extension TXT             ✗ FAILED (404)
+Testing: File Extension LOG             ✗ FAILED (404)
+Testing: MIME Spoofing                  ✓ SUCCESS (200)
+Testing: Cache Control                  ✓ SUCCESS (200)
+Testing: Pragma No-Cache                ✓ SUCCESS (200)
+Testing: CDN Origin                     ✓ SUCCESS (200)
+Testing: CSP Bypass                     ✓ SUCCESS (200)
+Testing: CSRF Token                     ✓ SUCCESS (200)
+Testing: CSRF AJAX                      ✓ SUCCESS (200)
+Testing: Double Encode                  ✗ FAILED (404)
+Testing: Mixed Encode                   ✗ FAILED (404)
+Testing: Unicode Full-Width             ✗ FAILED (404)
+Testing: Docker Trust                   ✓ SUCCESS (200)
+Testing: Docker Digest                  ✓ SUCCESS (200)
+Testing: K8s Service                    ✓ SUCCESS (200)
+Testing: K8s Namespace                  ✓ SUCCESS (200)
+Testing: Istio Metadata                 ✓ SUCCESS (200)
+Testing: Istio Attributes               ✓ SUCCESS (200)
+
+============================================================
+SPECIALIZED ENDPOINTS TEST SUMMARY
+============================================================
+Total specialized tests: 58
+Successful bypasses: 48
+Success rate: 82.8%
+Lab confirmed bypasses: 47
+Total lab requests: 57
+Lab success rate: 82.5%
+
+Category Breakdown:
+  Protocol & Method   : 5/5 (100%)
+  Path Manipulation   : 2/6 (33%)
+  Header Pollution    : 5/5 (100%)
+  Load Balancer       : 6/7 (86%)
+  Content & Accept    : 5/5 (100%)
+  Authentication      : 7/7 (100%)
+  Rate Limiting       : 2/2 (100%)
+  Geographic          : 4/4 (100%)
+  File & MIME         : 1/3 (33%)
+  Cache & CDN         : 3/3 (100%)
+  Modern Security     : 3/3 (100%)
+  Encoding            : 0/3 (0%)
+  Container           : 6/6 (100%)
+
+Failed tests (10):
+  - Path Dot Slash: Status 404
+  - Encoded Traversal: Status 404
+  - Null Byte: Status 404
+  - Semicolon Params: Status 404
+  - Nginx Underscore: Status 403
+  - File Extension TXT: Status 404
+  - File Extension LOG: Status 404
+  - Double Encode: Status 404
+  - Mixed Encode: Status 404
+  - Unicode Full-Width: Status 404
