@@ -203,18 +203,7 @@ python lab.py
 
 </div>
 
-### 🤖 Automated Testing
 
-```bash
-# 🔬 Run comprehensive test suite
-python test_runner.py
-
-# ⚡ Quick validation test  
-python validate_tool.py
-
-# 📊 Generate detailed reports
-python comprehensive_test.py
-```
 
 ---
 
