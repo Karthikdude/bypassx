@@ -620,10 +620,10 @@ curl -I https://target.com/admin
 
 | 🔗 Resource | 📍 Link | 📝 Description |
 |-------------|---------|---------------|
-| **🐛 Issues** | [GitHub Issues](https://github.com/yourusername/bypassx/issues) | Bug reports & feature requests |
-| **📖 Wiki** | [Documentation](https://github.com/yourusername/bypassx/wiki) | Complete technique reference |
-| **💬 Discussions** | [GitHub Discussions](https://github.com/yourusername/bypassx/discussions) | Community Q&A |
-| **🐦 Updates** | [@BypassX](https://twitter.com/bypassx) | Latest news & updates |
+| **🐛 Issues** | [GitHub Issues](https://github.com/Karthikdude/bypassx/issues) | Bug reports & feature requests |
+| **📖 Wiki** | [Documentation](https://github.com/Karthikdude/bypassx/wiki) | Complete technique reference |
+| **💬 Discussions** | [GitHub Discussions](https://github.com/Karthikdude/bypassx/discussions) | Community Q&A |
+
 
 </div>
 
