@@ -1,9 +1,10 @@
 package main
 
 import (
-        "fmt"
-        "net/url"
-        "strings"
+	"fmt"
+	"net/url"
+	"strings"
+	"unicode"
 )
 
 // TechniqueConfig represents a bypass technique configuration
@@ -1307,13 +1308,13 @@ func generateContainerTechniques(targetURL string) []TechniqueConfig {
 
 // Helper functions
 func toggleCase(s string) string {
-        var result strings.Builder
-        for i, r := range s {
-                if i%2 == 0 {
-                        result.WriteRune(strings.ToUpper(string(r))[0])
-                } else {
-                        result.WriteRune(strings.ToLower(string(r))[0])
-                }
-        }
-        return result.String()
+	var result strings.Builder
+	for i, r := range s {
+		if i%2 == 0 {
+			result.WriteRune(unicode.ToUpper(r))
+		} else {
+			result.WriteRune(unicode.ToLower(r))
+		}
+	}
+	return result.String()
 }

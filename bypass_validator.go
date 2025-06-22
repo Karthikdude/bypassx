@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func main() {
+func validateBypasses() {
 	// Test basic functionality
 	client := &http.Client{Timeout: 5 * time.Second}
 	
