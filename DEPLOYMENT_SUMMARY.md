@@ -17,7 +17,7 @@ BypassX is a production-ready HTTP 403 bypass testing suite with 150+ techniques
 ### Quick Installation
 ```bash
 # 1. Clone the repository
-git clone https://github.com/yourusername/bypassx.git
+git clone https://github.com/Karthikdude/bypassx.git
 cd bypassx
 
 # 2. Build the tool
@@ -69,7 +69,7 @@ bypassx -h
 #### Method 3: Go Install (Direct Installation)
 ```bash
 # Install directly from Go modules
-go install github.com/yourusername/bypassx@latest
+go install github.com/Karthikdude/bypassx@latest
 
 # Ensure $GOPATH/bin or $GOBIN is in PATH
 export PATH=$PATH:$(go env GOPATH)/bin
