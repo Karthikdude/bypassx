@@ -36,11 +36,11 @@ func worker(workerID int, workChan <-chan WorkItem) {
 		// Print result if verbose
 		if config.Verbose {
 			if result.Success {
-				fmt.Printf("[WORKER %d] [SUCCESS] %s - %s (%d)\n", 
-					workerID, workItem.Technique, workItem.URL, result.Status)
+				fmt.Println(successColor(fmt.Sprintf("[WORKER %d] [SUCCESS] %s - %s (%d)",
+					workerID, workItem.Technique, workItem.URL, result.Status)))
 			} else {
-				fmt.Printf("[WORKER %d] [FAILED] %s - %s (%d)\n", 
-					workerID, workItem.Technique, workItem.URL, result.Status)
+				fmt.Println(failColor(fmt.Sprintf("[WORKER %d] [FAILED] %s - %s (%d)",
+					workerID, workItem.Technique, workItem.URL, result.Status)))
 			}
 		}
 	}

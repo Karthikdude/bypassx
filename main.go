@@ -1,15 +1,17 @@
 package main
 
 import (
-        "bufio"
-        "flag"
-        "fmt"
-        "log"
-        "os"
-        "strconv"
-        "strings"
-        "sync"
-        "time"
+	"bufio"
+	"flag"
+	"fmt"
+	"log"
+	"os"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/fatih/color"
 )
 
 // Config holds all configuration options
@@ -61,9 +63,15 @@ type Result struct {
 }
 
 var (
-        results   []Result
-        resultsMu sync.Mutex
-        config    Config
+	results   []Result
+	resultsMu sync.Mutex
+	config    Config
+
+	// Color functions
+	infoColor    = color.New(color.FgCyan).SprintFunc()
+	successColor = color.New(color.FgGreen).SprintFunc()
+	failColor    = color.New(color.FgRed).SprintFunc()
+	boldColor    = color.New(color.Bold).SprintFunc()
 )
 
 func main() {
@@ -84,8 +92,8 @@ func main() {
                 log.Fatal("No target URLs provided")
         }
 
-        fmt.Printf("[INFO] Starting bypassx with %d URLs and %d workers\n", len(urls), config.Concurrency)
-        fmt.Printf("[INFO] Success codes: %v\n", config.SuccessCodes)
+        fmt.Println(infoColor(fmt.Sprintf("[INFO] Starting bypassx with %d URLs and %d workers", len(urls), config.Concurrency)))
+		fmt.Println(infoColor(fmt.Sprintf("[INFO] Success codes: %v", config.SuccessCodes)))
         
         // Start concurrent processing
         startTime := time.Now()
@@ -322,51 +330,51 @@ func processURLs(urls []string) {
 }
 
 func printSummary(duration time.Duration) {
-        successCount := 0
-        totalCount := len(results)
-        
-        fmt.Printf("\n" + strings.Repeat("=", 60) + "\n")
-        fmt.Printf("BYPASSX SCAN SUMMARY\n")
-        fmt.Printf(strings.Repeat("=", 60) + "\n")
-        
-        // Print all results
-        for _, result := range results {
-                if result.Success {
-                        fmt.Printf("[BYPASS SUCCESS] URL: %s | Method: %s | Technique: %s | Status: %d\n",
-                                result.URL, result.Method, result.Technique, result.Status)
-                        successCount++
-                } else if config.Verbose {
-                        fmt.Printf("[FAILED] URL: %s | Method: %s | Technique: %s | Status: %d\n",
-                                result.URL, result.Method, result.Technique, result.Status)
-                }
-        }
-        
-        fmt.Printf(strings.Repeat("-", 60) + "\n")
-        fmt.Printf("Total requests: %d\n", totalCount)
-        fmt.Printf("Successful bypasses: %d\n", successCount)
-        fmt.Printf("Success rate: %.2f%%\n", float64(successCount)/float64(totalCount)*100)
-        fmt.Printf("Scan duration: %v\n", duration)
-        fmt.Printf(strings.Repeat("=", 60) + "\n")
+	successCount := 0
+	totalCount := len(results)
+
+	fmt.Printf("\n" + strings.Repeat("=", 60) + "\n")
+	fmt.Println(boldColor("BYPASSX SCAN SUMMARY"))
+	fmt.Printf(strings.Repeat("=", 60) + "\n")
+
+	// Print all results
+	for _, result := range results {
+		if result.Success {
+			fmt.Println(successColor(fmt.Sprintf("[BYPASS SUCCESS] URL: %s | Method: %s | Technique: %s | Status: %d",
+				result.URL, result.Method, result.Technique, result.Status)))
+			successCount++
+		} else if config.Verbose {
+			fmt.Println(failColor(fmt.Sprintf("[FAILED] URL: %s | Method: %s | Technique: %s | Status: %d",
+				result.URL, result.Method, result.Technique, result.Status)))
+		}
+	}
+
+	fmt.Printf(strings.Repeat("-", 60) + "\n")
+	fmt.Printf("Total requests: %d\n", totalCount)
+	fmt.Printf("Successful bypasses: %s\n", successColor(successCount))
+	fmt.Printf("Success rate: %.2f%%\n", float64(successCount)/float64(totalCount)*100)
+	fmt.Printf("Scan duration: %v\n", duration)
+	fmt.Printf(strings.Repeat("=", 60) + "\n")
 }
 
 func writeResultsToFile() {
-        file, err := os.Create(config.OutputFile)
-        if err != nil {
-                log.Printf("[ERROR] Could not create output file: %v", err)
-                return
-        }
-        defer file.Close()
-        
-        writer := bufio.NewWriter(file)
-        defer writer.Flush()
-        
-        for _, result := range results {
-                if result.Success {
-                        line := fmt.Sprintf("[BYPASS SUCCESS] URL: %s | Method: %s | Technique: %s | Status: %d\n",
-                                result.URL, result.Method, result.Technique, result.Status)
-                        writer.WriteString(line)
-                }
-        }
-        
-        fmt.Printf("[INFO] Results written to %s\n", config.OutputFile)
+	file, err := os.Create(config.OutputFile)
+	if err != nil {
+		log.Printf("[ERROR] Could not create output file: %v", err)
+		return
+	}
+	defer file.Close()
+
+	writer := bufio.NewWriter(file)
+	defer writer.Flush()
+
+	for _, result := range results {
+		if result.Success {
+			line := fmt.Sprintf("[BYPASS SUCCESS] URL: %s | Method: %s | Technique: %s | Status: %d\n",
+				result.URL, result.Method, result.Technique, result.Status)
+			writer.WriteString(line)
+		}
+	}
+
+	fmt.Println(infoColor(fmt.Sprintf("[INFO] Results written to %s", config.OutputFile)))
 }
