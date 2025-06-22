@@ -652,6 +652,6 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ---
 
-*Made with ❤️ by security professionals, for security professionals*
+*Made with ❤️Karthik S Sathyan, for security professionals*
 
 </div>
