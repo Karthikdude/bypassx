@@ -1,4 +1,5 @@
-module bypassx
+module github.com/Karthikdude/bypassx
+
 
 go 1.22.3
 
