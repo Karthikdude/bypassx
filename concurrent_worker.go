@@ -1,6 +1,8 @@
+
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -10,7 +12,7 @@ import (
 	"time"
 )
 
-// WorkItem represents a single bypass attempt
+// WorkItem represents a single bypass test to be performed
 type WorkItem struct {
 	URL       string
 	Method    string
@@ -20,39 +22,39 @@ type WorkItem struct {
 }
 
 func worker(workerID int, workChan <-chan WorkItem) {
-	// Create HTTP client for this worker
+	// Create HTTP client with custom configuration
 	client := createHTTPClient()
 	
 	for workItem := range workChan {
-		result := processWorkItem(client, workItem)
+		result := executeBypassTest(client, workItem)
 		
-		// Store result safely
+		// Store result
 		resultsMu.Lock()
 		results = append(results, result)
 		resultsMu.Unlock()
 		
-		// Output result if verbose or successful
-		if result.Success || config.Verbose {
+		// Print result if verbose
+		if config.Verbose {
 			if result.Success {
-				fmt.Printf("[WORKER %d] [SUCCESS] %s | %s | %s | %d\n",
-					workerID, workItem.Technique, workItem.Method, workItem.URL, result.Status)
-			} else if config.Verbose {
-				fmt.Printf("[WORKER %d] [FAILED] %s | %s | %s | %d\n",
-					workerID, workItem.Technique, workItem.Method, workItem.URL, result.Status)
+				fmt.Printf("[WORKER %d] [SUCCESS] %s - %s (%d)\n", 
+					workerID, workItem.Technique, workItem.URL, result.Status)
+			} else {
+				fmt.Printf("[WORKER %d] [FAILED] %s - %s (%d)\n", 
+					workerID, workItem.Technique, workItem.URL, result.Status)
 			}
 		}
 	}
 }
 
 func createHTTPClient() *http.Client {
-	// Configure transport
+	// Create custom transport
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true, // For testing purposes
+			InsecureSkipVerify: true,
 		},
-		DisableKeepAlives: true,
-		MaxIdleConns:      1,
-		IdleConnTimeout:   time.Second * 5,
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 10,
+		IdleConnTimeout:     30 * time.Second,
 	}
 	
 	// Configure proxy if specified
@@ -63,26 +65,17 @@ func createHTTPClient() *http.Client {
 		}
 	}
 	
-	client := &http.Client{
+	return &http.Client{
 		Transport: transport,
 		Timeout:   config.Timeout,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			// Don't follow redirects, we want to capture them
+			// Don't follow redirects, we want to see the initial response
 			return http.ErrUseLastResponse
 		},
 	}
-	
-	return client
 }
 
-func processWorkItem(client *http.Client, workItem WorkItem) Result {
-	result := Result{
-		URL:       workItem.URL,
-		Method:    workItem.Method,
-		Technique: workItem.Technique,
-		Success:   false,
-	}
-	
+func executeBypassTest(client *http.Client, workItem WorkItem) Result {
 	// Create request
 	var bodyReader io.Reader
 	if workItem.Body != "" {
@@ -91,72 +84,186 @@ func processWorkItem(client *http.Client, workItem WorkItem) Result {
 	
 	req, err := http.NewRequest(workItem.Method, workItem.URL, bodyReader)
 	if err != nil {
-		result.Status = 0
-		return result
+		return Result{
+			URL:       workItem.URL,
+			Method:    workItem.Method,
+			Technique: workItem.Technique,
+			Status:    0,
+			Success:   false,
+		}
 	}
 	
 	// Set headers
 	setRequestHeaders(req, workItem.Headers)
 	
-	// Make request
+	// Execute request
 	resp, err := client.Do(req)
 	if err != nil {
-		result.Status = 0
-		return result
+		return Result{
+			URL:       workItem.URL,
+			Method:    workItem.Method,
+			Technique: workItem.Technique,
+			Status:    0,
+			Success:   false,
+		}
 	}
 	defer resp.Body.Close()
 	
-	result.Status = resp.StatusCode
+	// Check if status code indicates success
+	success := isSuccessStatusCode(resp.StatusCode)
 	
-	// Check if this is a success based on configured success codes
-	for _, successCode := range config.SuccessCodes {
-		if resp.StatusCode == successCode {
-			result.Success = true
-			break
-		}
+	return Result{
+		URL:       workItem.URL,
+		Method:    workItem.Method,
+		Technique: workItem.Technique,
+		Status:    resp.StatusCode,
+		Success:   success,
 	}
-	
-	return result
 }
 
-func setRequestHeaders(req *http.Request, techniqueHeaders map[string]string) {
-	// Set default headers
-	if req.Header.Get("User-Agent") == "" {
-		req.Header.Set("User-Agent", config.UserAgents[0])
-	}
-	
+func setRequestHeaders(req *http.Request, headers map[string]string) {
 	// Set custom headers from config
 	for key, value := range config.CustomHeaders {
 		req.Header.Set(key, value)
 	}
 	
 	// Set technique-specific headers
-	for key, value := range techniqueHeaders {
-		// Handle special cases for certain headers
-		switch key {
-		case "Host":
-			req.Host = value
-		case "X-Forwarded-For":
-			// Handle multiple values
-			if existing := req.Header.Get(key); existing != "" {
-				req.Header.Set(key, existing+", "+value)
-			} else {
-				req.Header.Set(key, value)
-			}
-		default:
-			req.Header.Set(key, value)
-		}
+	for key, value := range headers {
+		req.Header.Set(key, value)
 	}
 	
-	// Set cookie if provided
+	// Set cookie if specified
 	if config.Cookie != "" {
 		req.Header.Set("Cookie", config.Cookie)
 	}
 	
-	// Set content length for POST requests with body
-	if req.Body != nil && req.Method == "POST" {
-		if req.Header.Get("Content-Type") == "" {
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	// Set User-Agent if not already set
+	if req.Header.Get("User-Agent") == "" && len(config.UserAgents) > 0 {
+		req.Header.Set("User-Agent", config.UserAgents[0])
+	}
+	
+	// Set Content-Type for POST requests if not specified
+	if req.Method == "POST" && req.Header.Get("Content-Type") == "" {
+		req.Header.Set("Content-Type", "application/json")
+	}
+}
+
+func isSuccessStatusCode(statusCode int) bool {
+	for _, code := range config.SuccessCodes {
+		if statusCode == code {
+			return true
 		}
+	}
+	return false
+}
+
+// Additional helper functions for advanced request manipulation
+func createRequestWithBody(method, url, body string) (*http.Request, error) {
+	var bodyReader io.Reader
+	if body != "" {
+		bodyReader = bytes.NewBufferString(body)
+	}
+	return http.NewRequest(method, url, bodyReader)
+}
+
+func setAdvancedHeaders(req *http.Request, technique string) {
+	switch technique {
+	case "REQUEST_SMUGGLING_TE_CL":
+		req.Header.Set("Transfer-Encoding", "chunked")
+		req.Header.Set("Content-Length", "0")
+	case "HTTP2_AUTHORITY_BYPASS":
+		// Note: This won't work with http/1.1 but is included for completeness
+		req.Header.Set(":authority", "internal.service")
+	case "WEBSOCKET_UPGRADE":
+		req.Header.Set("Upgrade", "websocket")
+		req.Header.Set("Connection", "Upgrade")
+		req.Header.Set("Sec-WebSocket-Key", "x3JJHMbDL1EzLkh9GBhXDw==")
+		req.Header.Set("Sec-WebSocket-Version", "13")
+	}
+}
+
+func handleSpecialRequests(client *http.Client, workItem WorkItem) *Result {
+	// Handle special cases that need custom request handling
+	switch workItem.Technique {
+	case "CRLF_INJECTION":
+		return handleCRLFInjection(client, workItem)
+	case "NULL_BYTE_INJECTION":
+		return handleNullByteInjection(client, workItem)
+	}
+	return nil
+}
+
+func handleCRLFInjection(client *http.Client, workItem WorkItem) *Result {
+	// For CRLF injection, we need to construct a raw request
+	// This is a simplified version - real CRLF injection would need raw socket handling
+	modifiedURL := workItem.URL + "%0d%0aInjected: header"
+	
+	req, err := http.NewRequest(workItem.Method, modifiedURL, nil)
+	if err != nil {
+		return &Result{
+			URL:       workItem.URL,
+			Method:    workItem.Method,
+			Technique: workItem.Technique,
+			Status:    0,
+			Success:   false,
+		}
+	}
+	
+	setRequestHeaders(req, workItem.Headers)
+	
+	resp, err := client.Do(req)
+	if err != nil {
+		return &Result{
+			URL:       workItem.URL,
+			Method:    workItem.Method,
+			Technique: workItem.Technique,
+			Status:    0,
+			Success:   false,
+		}
+	}
+	defer resp.Body.Close()
+	
+	return &Result{
+		URL:       workItem.URL,
+		Method:    workItem.Method,
+		Technique: workItem.Technique,
+		Status:    resp.StatusCode,
+		Success:   isSuccessStatusCode(resp.StatusCode),
+	}
+}
+
+func handleNullByteInjection(client *http.Client, workItem WorkItem) *Result {
+	// Handle null byte injection
+	req, err := http.NewRequest(workItem.Method, workItem.URL, nil)
+	if err != nil {
+		return &Result{
+			URL:       workItem.URL,
+			Method:    workItem.Method,
+			Technique: workItem.Technique,
+			Status:    0,
+			Success:   false,
+		}
+	}
+	
+	setRequestHeaders(req, workItem.Headers)
+	
+	resp, err := client.Do(req)
+	if err != nil {
+		return &Result{
+			URL:       workItem.URL,
+			Method:    workItem.Method,
+			Technique: workItem.Technique,
+			Status:    0,
+			Success:   false,
+		}
+	}
+	defer resp.Body.Close()
+	
+	return &Result{
+		URL:       workItem.URL,
+		Method:    workItem.Method,
+		Technique: workItem.Technique,
+		Status:    resp.StatusCode,
+		Success:   isSuccessStatusCode(resp.StatusCode),
 	}
 }
