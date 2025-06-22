@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -48,6 +49,7 @@ type Config struct {
         StatusCodes      string
         WordlistFile     string
         UserAgentFile    string
+        Details          string
         SuccessCodes     []int
         CustomHeaders    map[string]string
         UserAgents       []string
@@ -74,17 +76,119 @@ var (
 	boldColor    = color.New(color.Bold).SprintFunc()
 )
 
+func showDetails(technique string) {
+	// If no technique specified, show available techniques
+	if technique == "" {
+		fmt.Println("\nAvailable techniques (use -details TECHNIQUE_NAME):")
+		fmt.Println(strings.Repeat("-", 50))
+		
+		// List all available techniques from the details directory
+		files, err := os.ReadDir("details")
+		if err != nil {
+			fmt.Printf("Error reading details directory: %v\n", err)
+			os.Exit(1)
+		}
+		
+		// Group techniques by category for better readability
+		categories := make(map[string][]string)
+		for _, file := range files {
+			if strings.HasSuffix(file.Name(), ".md") {
+				techName := strings.TrimSuffix(file.Name(), ".md")
+				// Simple categorization based on technique name
+				category := "Other"
+				switch {
+				case strings.HasPrefix(techName, "TRAILING_"):
+					category = "Trailing Character Manipulation"
+				case strings.Contains(techName, "HEADER_"):
+					category = "Header Manipulation"
+				case strings.Contains(techName, "CASE_"):
+					category = "Case Manipulation"
+				case strings.Contains(techName, "ENCODED") || strings.Contains(techName, "ENCODING"):
+					category = "Encoding Manipulation"
+				case strings.Contains(techName, "BYPASS"):
+					category = "Specific Bypass Techniques"
+				}
+				categories[category] = append(categories[category], techName)
+			}
+		}
+		
+		// Print techniques by category
+		for category, techs := range categories {
+			fmt.Printf("\n[%s]\n", category)
+			for _, tech := range techs {
+				fmt.Printf("  %s\n", tech)
+			}
+		}
+		fmt.Println("\nExample: bypassx -details TRAILING_SLASH")
+		os.Exit(0)
+	}
+
+	// Normalize technique name (case-insensitive, remove .md if present)
+	technique = strings.ToUpper(strings.TrimSuffix(technique, ".md"))
+	detailsPath := filepath.Join("details", technique+".md")
+	
+	// Check if file exists
+	if _, err := os.Stat(detailsPath); os.IsNotExist(err) {
+		fmt.Printf("\nError: Documentation not found for technique: %s\n", technique)
+		fmt.Println("\nRun 'bypassx -details' to see available techniques")
+		os.Exit(1)
+	}
+
+	// Read and display the file
+	content, err := os.ReadFile(detailsPath)
+	if err != nil {
+		fmt.Printf("Error reading documentation: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Display with some formatting
+	fmt.Println("\n" + strings.Repeat("=", 80))
+	fmt.Printf(" %s Documentation\n", technique)
+	fmt.Println(strings.Repeat("=", 80))
+	fmt.Println(string(content))
+	fmt.Println(strings.Repeat("=", 80))
+}
+
 func main() {
         parseFlags()
-        
-        if config.TargetURL == "" && config.URLListFile == "" && !config.UseStdin {
-                log.Fatal("Must specify target URL with -u, URL list file with -l, or use -stdin")
-        }
-
-        // Load configuration files
         loadCustomHeaders()
         loadUserAgents()
         parseSuccessCodes()
+
+        // Handle details flag
+        if config.Details != "" {
+                showDetails(config.Details)
+                return
+        }
+
+        if config.TargetURL == "" && config.URLListFile == "" && !config.UseStdin {
+                fmt.Println("Error: Please provide a target URL (-u), URL list file (-l), or use stdin (-stdin)")
+                os.Exit(1)
+        }
+
+        if config.TargetURL != "" && config.URLListFile != "" {
+                fmt.Println("Error: Please provide either a target URL (-u) or URL list file (-l), not both")
+                os.Exit(1)
+        }
+
+        if config.TargetURL != "" && config.UseStdin {
+                fmt.Println("Error: Please provide either a target URL (-u) or use stdin (-stdin), not both")
+                os.Exit(1)
+        }
+
+        if config.URLListFile != "" && config.UseStdin {
+                fmt.Println("Error: Please provide either a URL list file (-l) or use stdin (-stdin), not both")
+                os.Exit(1)
+        }
+
+        if config.OutputFile != "" {
+                outputFile, err := os.Create(config.OutputFile)
+                if err != nil {
+                        log.Fatal(err)
+                }
+                defer outputFile.Close()
+                log.SetOutput(outputFile)
+        }
 
         // Get target URLs
         urls := getTargetURLs()
@@ -115,6 +219,7 @@ func parseFlags() {
         flag.StringVar(&config.HeaderFile, "H", "", "File containing custom headers")
         flag.StringVar(&config.Method, "m", "", "HTTP method to use (default: all)")
         flag.StringVar(&config.OutputFile, "o", "", "Output file for results")
+        flag.StringVar(&config.Details, "details", "", "Show detailed documentation for a specific bypass technique")
         flag.IntVar(&config.Concurrency, "t", 10, "Number of concurrent workers")
         timeoutSeconds := flag.Int("timeout", 10, "Request timeout in seconds")
         flag.BoolVar(&config.Verbose, "verbose", false, "Enable verbose output")
