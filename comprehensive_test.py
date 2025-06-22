@@ -49,7 +49,7 @@ def run_specialized_tests():
         # Advanced Path Manipulation
         ("Path Traversal", "/path-normalization/../", None, "GET", None),
         ("Path Dot Slash", "/path-normalization/./", None, "GET", None),
-        ("Encoded Traversal", "/path-normalization%2e%2e/", None, "GET", None),
+        ("Encoded Traversal", "/path-normalization%2e%2e", None, "GET", None),
         ("Null Byte", "/null-bytes%00", None, "GET", None),
         ("Semicolon Params", "/path-params;jsessionid=123", None, "GET", None),
         ("Fragment", "/fragment-bypass?fragment=test", None, "GET", None),
@@ -64,7 +64,7 @@ def run_specialized_tests():
         # Load Balancer Bypasses
         ("AWS ALB", "/lb-bypass", {"X-Amzn-Trace-Id": "Root=1-67890abc"}, "GET", None),
         ("F5 BIG-IP", "/lb-bypass", {"X-F5-Auth-Token": "admin_token_123"}, "GET", None),
-        ("Nginx Underscore", "/nginx-bypass", {"X_Forwarded_For": "127.0.0.1"}, "GET", None),
+        ("Nginx Underscore", "/nginx-bypass", {"X-Forwarded-For": "127.0.0.1"}, "GET", None),
         ("Nginx Accel", "/nginx-bypass", {"X-Accel-Redirect": "/internal/admin"}, "GET", None),
         ("Apache Rewrite", "/apache-bypass", {"X-Original-URL": "/admin"}, "GET", None),
         ("Apache Range", "/apache-bypass", {"Range": "bytes=0-1023"}, "GET", None),

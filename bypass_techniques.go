@@ -1005,7 +1005,7 @@ func generateLoadBalancerTechniques(targetURL string) []TechniqueConfig {
                 URL:    targetURL,
                 Method: "GET",
                 Headers: map[string]string{
-                        "X_Forwarded_For": "127.0.0.1",
+                        "X-Forwarded-For": "127.0.0.1",
                 },
         })
         
