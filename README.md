@@ -600,7 +600,7 @@ curl -I https://target.com/admin
 
 > *"BypassX discovered 12 critical bypasses in our WAF configuration that manual testing missed. The 82.8% success rate speaks for itself!"*
 > 
-> **- Senior Security Engineer, Fortune 500 Company**
+> **- Senior Security Engineer, Freelancer**
 
 > *"The container and Kubernetes bypasses are incredible. Found service mesh vulnerabilities we never knew existed."*
 > 
