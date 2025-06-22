@@ -7,7 +7,7 @@
 [![Go Version](https://img.shields.io/badge/Go-1.22+-00ADD8?style=for-the-badge&logo=go)](https://golang.org/)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python)](https://python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
-[![Security](https://img.shields.io/badge/Security-Tested-red?style=for-the-badge&logo=security)](https://github.com/yourusername/bypassx)
+[![Security](https://img.shields.io/badge/Security-Tested-red?style=for-the-badge&logo=security)](https://github.com/Karthikdude/bypassx)
 
 *High-performance, battle-tested HTTP 403 bypass testing suite with 150+ advanced techniques*
 
@@ -639,7 +639,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ## 🌟 Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=yourusername/bypassx&type=Date)](https://star-history.com/#yourusername/bypassx&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=Karthikdude/bypassx&type=Date)](https://star-history.com/#Karthikdude/bypassx&Date)
 
 ---
 
