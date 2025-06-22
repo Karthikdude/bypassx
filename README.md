@@ -65,7 +65,7 @@
 ```bash
 # 🚀 Get started in 30 seconds
 git clone https://github.com/Karthikdude/bypassx.git
-cd bypassx && go build -o bypassx . && sudo cp bypassx /usr/local/bin/
+cd bypassx && go mod tidy && go build -o bypassx . && sudo cp bypassx /usr/local/bin/
 
 # 🎯 Test a single endpoint
 bypassx -u https://target.com/admin
